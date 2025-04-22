@@ -78,7 +78,11 @@ app.post("/generate-image", (req, res) => {
       });
 
 
-      res.status(200).json({ prompt });
+      const imageUrl = imageGen.data[0].url;
+      console.log("✅ DALL·E image generated:", imageUrl);
+
+      res.status(200).json({ prompt, imageUrl });
+
     } catch (e) {
       console.error("🔥 Error generating:", e);
       res.status(500).json({ error: "Generation failed" });
