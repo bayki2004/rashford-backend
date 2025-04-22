@@ -57,8 +57,26 @@ app.post("/generate-image", (req, res) => {
         ],
       });
 
+      
       const prompt = vision.choices[0].message.content;
-      console.log("🎯 Prompt:", prompt);
+      console.log("🎯 Raw prompt:", prompt);
+
+      // Clean prompt for DALL·E
+      const cleanedPrompt = prompt
+        .replace(/[*_~`>#-]/g, "")
+        .replace(/\n+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      console.log("🧼 Cleaned prompt:", cleanedPrompt);
+
+      const imageGen = await openai.images.generate({
+        model: "dall-e-3",
+        prompt: cleanedPrompt,
+        n: 1,
+        size: "1024x1024",
+      });
+
 
       res.status(200).json({ prompt });
     } catch (e) {
