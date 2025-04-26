@@ -50,7 +50,7 @@ app.post("/generate-image", (req, res) => {
           {
             role: "user",
             content: [
-              { type: "text", text: "Create an action figure from this picture. It should be an image where the person is an action figure doll and has three items which could fit the person such as football or crossbow or something else." },
+              { type: "text", text: "Create an action figure from this picture. It should be an image where the person is an action figure doll and has three items which could fit the person such as football or crossbow or something else. Make it a nice sympathetic action figure and keep it PG13" },
               { type: "image_url", image_url: { url: dataUrl } },
             ],
           },
