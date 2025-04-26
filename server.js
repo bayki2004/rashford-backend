@@ -50,7 +50,22 @@ app.post("/generate-image", (req, res) => {
           {
             role: "user",
             content: [
-              { type: "text", text: "Create an 80s-style plastic action figure from this." },
+              { type: "text", text: "Create an image of a stylized plastic action figure of the depicted person, featuring exactly the same characteristics as in the photo, sealed in a collectible blister pack.
+
+The background of the packaging shows something special.
+
+Centered at the top is an 80s-inspired fantasy logo in the style of “Masters of the Universe.” Uppercase letters, blocky, three-dimensional with a perspective effect. The letters should have a metallic gradient (e.g., white to blue), with glowing outer lines (e.g., pink or orange) and a subtle glow. The lettering should appear epic, heroic, and retro. The title says: [MAIN TITLE, e.g., Name, Slogan].
+
+Below that, in bold yellow letters, it says: "[FIRST NAME, LAST NAME]", and beneath that in white text with line breaks: "AITOONS".
+
+The figure is centered inside a transparent plastic shell – displayed as a full character with head, arms, torso, legs, and feet. The figure should be wearing the following: (e.g., pants, top, shoes including color)
+
+To the right of the figure are three miniature accessories possibly similar to the theme of the picture:
+
+[ITEM 1, e.g., crossbow]
+[ITEM 2, e.g., apple]
+[ITEM 3, e.g., quiver with two arrows]
+Each floating in its own compartment. The design is sharp, clean, and hyper-realistic, with a subtle plastic sheen on the figure and a classic 80s-style look." },
               { type: "image_url", image_url: { url: dataUrl } },
             ],
           },
