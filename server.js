@@ -52,6 +52,7 @@ app.post("/generate-image", (req, res) => {
           {
             role: "user",
             content: [
+<<<<<<< HEAD
               {
                 type: "text",
                 text: `
@@ -68,6 +69,9 @@ app.post("/generate-image", (req, res) => {
   
   Design it in a sharp, hyper-realistic 80s style.`,
               },
+=======
+              { type: "text", text: "Create an action figure from this picture. It should be an image where the person is an action figure doll and has three items which could fit the person such as football or crossbow or something else. Make it a nice sympathetic action figure and keep it PG13" },
+>>>>>>> 6966fe235e64cf3f4b05b06b0f0543eea18a1f3a
               { type: "image_url", image_url: { url: dataUrl } },
             ],
           },
