@@ -1,4 +1,3 @@
-
 const express = require("express");
 const cors = require("cors");
 const formidable = require("formidable");
@@ -28,85 +27,62 @@ function bufferFile(filePath) {
 app.post("/generate-image", (req, res) => {
   const form = new formidable.IncomingForm({ multiples: false });
 
-
   form.parse(req, async (err, fields, files) => {
     if (err) {
       console.error("🛑 Form parse error:", err);
       return res.status(500).json({ error: "Form parse failed" });
     }
-  
+
     try {
       const { title, firstName, subTitle, item1, item2, item3 } = fields;
-  
+
+      if (!files || Object.keys(files).length === 0) {
+        return res.status(400).json({ error: "No image uploaded" });
+      }
+
       const firstKey = Object.keys(files)[0];
       const file = Array.isArray(files[firstKey]) ? files[firstKey][0] : files[firstKey];
       const buffer = await bufferFile(file.filepath);
-      const base64 = buffer.toString("base64");
-      const dataUrl = `data:image/jpeg;base64,${base64}`;
-  
-      console.log("🧠 Sending to GPT-4...");
-      const vision = await openai.chat.completions.create({
-        model: "gpt-4-turbo",
-        messages: [
-          { role: "system", content: "Describe this image as a stylized action figure." },
-          {
-            role: "user",
-            content: [
-<<<<<<< HEAD
-              {
-                type: "text",
-                text: `
-  Create an image of a stylized plastic action figure of the depicted person, sealed in a collectible blister pack.
-  
-  Centered at the top is a fantasy logo like “Masters of the Universe,” titled: ${title}.
-  
-  Below that, bold yellow letters: ${firstName}, and underneath: "${subTitle}".
-  
-  Next to the figure: 
-  - ${item1}
-  - ${item2}
-  - ${item3}
-  
-  Design it in a sharp, hyper-realistic 80s style.`,
-              },
-=======
-              { type: "text", text: "Create an action figure from this picture. It should be an image where the person is an action figure doll and has three items which could fit the person such as football or crossbow or something else. Make it a nice sympathetic action figure and keep it PG13" },
->>>>>>> 6966fe235e64cf3f4b05b06b0f0543eea18a1f3a
-              { type: "image_url", image_url: { url: dataUrl } },
-            ],
-          },
-        ],
+
+      const prompt = `
+Create an image of a stylized plastic action figure of the depicted person in the reference picture, featuring exactly the same characteristics as in the photo, sealed in a collectible blister pack.
+
+The background of the packaging shows a lake with mountains scenery.
+
+Centered at the top is an 80s-inspired fantasy logo in the style of “Masters of the Universe.” Uppercase letters, blocky, three-dimensional with a perspective effect. The letters should have a metallic gradient (e.g., white to blue), with glowing outer lines (e.g., pink or orange) and a subtle glow. The title says: ${title}.
+
+Below that, in bold yellow letters, it says: ${firstName}, and beneath that in white text with line breaks: "${subTitle}".
+
+The figure is centered inside a transparent plastic shell – displayed as a full character with head, arms, torso, legs, and feet. The figure should be wearing the same clothing and colors as shown in the reference image.
+
+To the right of the figure are three miniature accessories:
+- ${item1}
+- ${item2}
+- ${item3}
+
+Each floating in its own compartment. The design should be sharp, clean, and hyper-realistic, with a subtle plastic sheen on the figure and a classic 80s-style look.
+      `.trim();
+
+      console.log("🎯 Sending to GPT-Image-1...");
+
+      const result = await openai.images.edit({
+        model: "gpt-image-1",
+        prompt: prompt,
+        image: [buffer],
+        response_format: "url", // 📢 Tell OpenAI we want a simple image URL
       });
-  
-      const prompt = vision.choices[0].message.content;
-      console.log("🎯 Raw prompt:", prompt);
-  
-      const cleanedPrompt = prompt
-        .replace(/[*_~`>#-]/g, "")
-        .replace(/\n+/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-  
-      console.log("🧼 Cleaned prompt:", cleanedPrompt);
-  
-      const imageGen = await openai.images.generate({
-        model: "dall-e-3",
-        prompt: cleanedPrompt,
-        n: 1,
-        size: "1024x1024",
-      });
-  
-      const imageUrl = imageGen.data[0].url;
-      console.log("✅ DALL·E image generated:", imageUrl);
-  
+
+      const imageUrl = result.data[0].url; // <- now it's a URL!
+
+      console.log("✅ Image generated:", imageUrl);
+
       res.status(200).json({ prompt, imageUrl });
-  
+
     } catch (e) {
       console.error("🔥 Error generating:", e);
       res.status(500).json({ error: "Generation failed" });
     }
   });
-  
 });
 
 app.get("/", (req, res) => {
