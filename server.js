@@ -231,13 +231,3 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-
-// === 4. Home Route ===
-app.get("/", (req, res) => {
-  res.send("✅ Backend is running!");
-});
-
-// === 5. Start Server ===
-app.listen(port, () => {
-  console.log(`🚀 Server running on port ${port}`);
-});
