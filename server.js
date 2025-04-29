@@ -12,6 +12,13 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const app = express();
 app.use(express.json({ limit: '10mb' }));  // or even 20mb if needed
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+const path = require('path');
+
+// Ensure "orders" folder exists
+const ordersDir = path.join(__dirname, 'orders');
+if (!fs.existsSync(ordersDir)) {
+  fs.mkdirSync(ordersDir);
+}
 
 const port = process.env.PORT || 3000;
 
