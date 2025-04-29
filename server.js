@@ -56,7 +56,7 @@ Each floating in its own compartment. The design should be sharp, clean, and hyp
         model: "gpt-image-1",
         image: [fileToSend],
         prompt: prompt,
-        n:3,
+        n:2,
       });
 
       const imagesBase64 = rsp.data.map(img => img.b64_json); // an array of base64 strings
