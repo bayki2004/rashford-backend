@@ -10,7 +10,9 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));  // or even 20mb if needed
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 const port = process.env.PORT || 3000;
 
 app.use(cors());
