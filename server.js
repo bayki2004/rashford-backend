@@ -92,22 +92,25 @@ Each floating in its own compartment. The design should be sharp, clean, and hyp
 });
 app.post("/create-checkout-session", async (req, res) => {
   try {
-    const { imageBase64s } = req.body;
+    const { imageBase64s, email } = req.body;
 
     if (!Array.isArray(imageBase64s) || imageBase64s.length === 0) {
       return res.status(400).json({ error: "No images provided" });
     }
 
-    // Save each image and create line items
+    const orderTimestamp = Date.now();
+    const savedFilenames = [];
+
     const lineItems = await Promise.all(
       imageBase64s.map(async (base64, index) => {
-        const filename = `order-${Date.now()}-${index}.png`;
-        const filepath = `./orders/${filename}`;
+        const filename = `order-${orderTimestamp}-${index}.png`;
+        const filepath = path.join(ordersDir, filename);
         fs.writeFileSync(filepath, Buffer.from(base64, "base64"));
+        savedFilenames.push(filename);
 
         return {
           price_data: {
-            currency: "usd",
+            currency: "chf",
             product_data: {
               name: `Action Figure #${index + 1}`,
             },
@@ -124,7 +127,18 @@ app.post("/create-checkout-session", async (req, res) => {
       line_items: lineItems,
       success_url: `${process.env.FRONTEND_URL}/success`,
       cancel_url: `${process.env.FRONTEND_URL}`,
+      ...(email && { customer_email: email }) // attach email if given
     });
+
+    // Save order metadata
+    const orderMetadata = {
+      checkout_id: session.id,
+      email: email || null,
+      ordered_files: savedFilenames,
+      timestamp: new Date().toISOString(),
+    };
+    const metadataFilePath = path.join(ordersDir, `order-${orderTimestamp}.json`);
+    fs.writeFileSync(metadataFilePath, JSON.stringify(orderMetadata, null, 2));
 
     res.status(200).json({ url: session.url });
   } catch (err) {
