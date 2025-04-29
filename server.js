@@ -49,54 +49,45 @@ app.post('/webhook', async (req, res) => {
   // After payment success, send yourself email etc...
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    console.log("✅ Payment completed session:", session);
+    console.log("Payment success session:", session);
   
-    // Find the related order
-    const orderId = session.metadata?.order_id;
-    if (!orderId) {
-      console.error("❗ No order ID found in session metadata!");
-      return res.status(400).send();
-    }
-  
+    const orderId = session.metadata.order_id;
     const orderFilePath = path.join(ordersDir, `${orderId}.json`);
   
-    if (!fs.existsSync(orderFilePath)) {
-      console.error("❗ Order JSON file not found:", orderFilePath);
-      return res.status(400).send();
-    }
+    if (fs.existsSync(orderFilePath)) {
+      const orderData = JSON.parse(fs.readFileSync(orderFilePath, "utf8"));
+      const customerEmail = session.customer_details.email;
+      const address = session.customer_details.address;
   
-    // Load the order
-    const orderData = JSON.parse(fs.readFileSync(orderFilePath));
+      // ✅ Attach ordered images
+      const attachments = orderData.images.map((filename) => ({
+        filename,
+        path: path.join(ordersDir, filename),
+      }));
   
-    // Mark as paid
-    orderData.paid = true;
-    fs.writeFileSync(orderFilePath, JSON.stringify(orderData, null, 2));
-  
-    // Email yourself
-    const mailOptions = {
-      from: process.env.EMAIL_USERNAME,
-      to: process.env.EMAIL_USERNAME,
-      subject: `New Action Figure Order! 🚀 (${orderId})`,
-      text: `
+      await transporter.sendMail({
+        from: `"Action Figure Shop" <${process.env.EMAIL_USERNAME}>`,
+        to: process.env.EMAIL_USERNAME,
+        subject: "🛒 New Action Figure Order",
+        text: `
   New order received!
   
   Order ID: ${orderId}
   Images: ${orderData.images.join(", ")}
-  Customer Email: ${session.customer_details?.email || "No email"}
-  Shipping Address: ${session.customer_details?.address ? JSON.stringify(session.customer_details.address, null, 2) : "No address"}
+  Customer Email: ${customerEmail}
+  Shipping Address: ${JSON.stringify(address, null, 2)}
   
   Thank you!
-      `,
-    };
+        `,
+        attachments,  // <--- 👈 This attaches the pictures
+      });
   
-    transporter.sendMail(mailOptions, (err, info) => {
-      if (err) {
-        console.error("🔥 Failed to send order email:", err);
-      } else {
-        console.log("✅ Order email sent:", info.response);
-      }
-    });
+      console.log("✅ Order email sent!");
+    } else {
+      console.error(`❌ Order file not found for ID: ${orderId}`);
+    }
   }
+  
   
 
   res.status(200).send();
