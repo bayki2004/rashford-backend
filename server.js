@@ -1,9 +1,13 @@
+
 const express = require("express");
 const cors = require("cors");
 const formidable = require("formidable");
 const fs = require("fs");
 const { OpenAI, toFile } = require("openai");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+app.use(express.json());
+
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -76,6 +80,49 @@ Each floating in its own compartment. The design should be sharp, clean, and hyp
     }
   });
 });
+app.post("/create-checkout-session", async (req, res) => {
+  try {
+    const { imageBase64s } = req.body;
+
+    if (!Array.isArray(imageBase64s) || imageBase64s.length === 0) {
+      return res.status(400).json({ error: "No images provided" });
+    }
+
+    // Save each image and create line items
+    const lineItems = await Promise.all(
+      imageBase64s.map(async (base64, index) => {
+        const filename = `order-${Date.now()}-${index}.png`;
+        const filepath = `./orders/${filename}`;
+        fs.writeFileSync(filepath, Buffer.from(base64, "base64"));
+
+        return {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: `Action Figure #${index + 1}`,
+            },
+            unit_amount: 500, // $5.00
+          },
+          quantity: 1,
+        };
+      })
+    );
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      line_items: lineItems,
+      success_url: `${process.env.FRONTEND_URL}/success`,
+      cancel_url: `${process.env.FRONTEND_URL}`,
+    });
+
+    res.status(200).json({ url: session.url });
+  } catch (err) {
+    console.error("🔥 Stripe checkout error:", err);
+    res.status(500).json({ error: "Checkout failed" });
+  }
+});
+
 
 app.get("/", (req, res) => {
   res.send("✅ Backend is running!");
