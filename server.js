@@ -2,24 +2,115 @@ const express = require("express");
 const cors = require("cors");
 const formidable = require("formidable");
 const fs = require("fs");
-const path = require("path");
 const { OpenAI, toFile } = require("openai");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const nodemailer = require("nodemailer");
+const bodyParser = require("body-parser");
+const path = require('path');
 require("dotenv").config();
 
 const app = express();
-const port = process.env.PORT || 3000;
 
-app.use(cors());
+// Special middleware: Raw body ONLY for webhook route
+app.use('/webhook', bodyParser.raw({ type: 'application/json' }));
+
+// Normal body parsing everywhere else
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Ensure "orders" folder exists
 const ordersDir = path.join(__dirname, 'orders');
 if (!fs.existsSync(ordersDir)) {
   fs.mkdirSync(ordersDir);
 }
+
+const port = process.env.PORT || 3000;
+
+app.use(cors());
+
+// Your other routes like /generate-image, /create-checkout-session go here...
+
+// Then your webhook route:
+app.post('/webhook', async (req, res) => {
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  const sig = req.headers['stripe-signature'];
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+  } catch (err) {
+    console.error(`⚡️ Webhook signature error: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // ✅ Now the body is raw and Stripe can verify signature
+  console.log("✅ Webhook verified:", event.type);
+
+  // After payment success, send yourself email etc...
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    console.log("✅ Payment completed session:", session);
+  
+    // Find the related order
+    const orderId = session.metadata?.order_id;
+    if (!orderId) {
+      console.error("❗ No order ID found in session metadata!");
+      return res.status(400).send();
+    }
+  
+    const orderFilePath = path.join(ordersDir, `${orderId}.json`);
+  
+    if (!fs.existsSync(orderFilePath)) {
+      console.error("❗ Order JSON file not found:", orderFilePath);
+      return res.status(400).send();
+    }
+  
+    // Load the order
+    const orderData = JSON.parse(fs.readFileSync(orderFilePath));
+  
+    // Mark as paid
+    orderData.paid = true;
+    fs.writeFileSync(orderFilePath, JSON.stringify(orderData, null, 2));
+  
+    // Email yourself
+    const mailOptions = {
+      from: process.env.EMAIL_USERNAME,
+      to: process.env.EMAIL_USERNAME,
+      subject: `New Action Figure Order! 🚀 (${orderId})`,
+      text: `
+  New order received!
+  
+  Order ID: ${orderId}
+  Images: ${orderData.images.join(", ")}
+  Customer Email: ${session.customer_details?.email || "No email"}
+  Shipping Address: ${session.customer_details?.address ? JSON.stringify(session.customer_details.address, null, 2) : "No address"}
+  
+  Thank you!
+      `,
+    };
+  
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) {
+        console.error("🔥 Failed to send order email:", err);
+      } else {
+        console.log("✅ Order email sent:", info.response);
+      }
+    });
+  }
+  
+
+  res.status(200).send();
+});
+
+app.get("/", (req, res) => {
+  res.send("✅ Backend is running!");
+});
+
+app.listen(port, () => {
+  console.log(`🚀 Server running on port ${port}`);
+});
+
+
 
 // OpenAI setup
 const openai = new OpenAI({
@@ -140,50 +231,6 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-// === 3. Stripe Webhook ===
-app.post("/webhook", express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    console.error("⚡️ Webhook signature error:", err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const orderId = session.metadata.order_id;
-    const customerEmail = session.customer_details.email;
-    const customerAddress = session.shipping_details.address;
-
-    console.log(`✅ Payment received for ${orderId}`);
-
-    // Update order file
-    const orderFilePath = path.join(ordersDir, `${orderId}.json`);
-    const orderData = JSON.parse(fs.readFileSync(orderFilePath));
-    orderData.paid = true;
-    orderData.customerEmail = customerEmail;
-    orderData.customerAddress = customerAddress;
-    fs.writeFileSync(orderFilePath, JSON.stringify(orderData, null, 2));
-
-    // Send yourself an email
-    await transporter.sendMail({
-      from: process.env.EMAIL_USERNAME,
-      to: process.env.ADMIN_EMAIL,
-      subject: `New Action Figure Order: ${orderId}`,
-      text: `New order!\nEmail: ${customerEmail}\nAddress: ${JSON.stringify(customerAddress, null, 2)}`,
-      attachments: orderData.images.map(filename => ({
-        filename,
-        path: path.join(ordersDir, filename),
-      })),
-    });
-  }
-
-  res.status(200).end();
-});
 
 // === 4. Home Route ===
 app.get("/", (req, res) => {
