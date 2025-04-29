@@ -24,7 +24,7 @@ app.post("/generate-image", (req, res) => {
     }
 
     try {
-      const { title, Name, subtitle, item1, item2, item3 } = fields;
+      const { title, name, subtitle, item1, item2, item3 } = fields;
 
       const fileKey = Object.keys(files)[0];
       const file = Array.isArray(files[fileKey]) ? files[fileKey][0] : files[fileKey];
@@ -40,7 +40,7 @@ The background of the packaging shows a lake with mountains scenery.
 
 Centered at the top is an 80s-inspired fantasy logo in the style of “Masters of the Universe.” Uppercase letters, blocky, three-dimensional with a perspective effect. The letters should have a metallic gradient (e.g., white to blue), with glowing outer lines (e.g., pink or orange) and a subtle glow. The title says: ${title}.
 
-Below that, in bold yellow letters, it says: ${Name}, and beneath that in white text: "${subtitle}".
+Below that, in bold yellow letters, it says: ${name}, and beneath that in white text: "${subtitle}".
 
 The figure is centered inside a transparent plastic shell – displayed as a full character with head, arms, torso, legs, and feet. The figure should be wearing the same clothing and colors as shown in the reference image.
 
