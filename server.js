@@ -44,7 +44,7 @@ Below that, in bold yellow letters, it says: ${Name}, and beneath that in white 
 
 The figure is centered inside a transparent plastic shell – displayed as a full character with head, arms, torso, legs, and feet. The figure should be wearing the same clothing and colors as shown in the reference image.
 
-To the right of the figure are three miniature accessories:
+To the right of the figure are exactly three miniature accessories:
 - ${item1}
 - ${item2}
 - ${item3}
