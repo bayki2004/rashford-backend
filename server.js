@@ -196,7 +196,7 @@ app.post("/create-checkout-session", async (req, res) => {
         product_data: {
           name: `Action Figure #${idx + 1}`,
         },
-        unit_amount: 500, // 5 CHF per figure
+        unit_amount: 3500, // 5 CHF per figure
       },
       quantity: 1,
     }));
